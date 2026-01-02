@@ -1,0 +1,12 @@
+{
+  "name": "voice-signaling-server",
+  "version": "1.0.0",
+  "description": "Simple WebSocket signaling server for WebRTC voice rooms",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "ws": "^8.13.0"
+  }
+}

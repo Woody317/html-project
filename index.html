@@ -1,0 +1,1435 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>P2P Communication Suite</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            max-width: 900px;
+            width: 100%;
+            overflow: hidden;
+        }
+
+        .header {
+            padding: 30px 40px 0;
+        }
+
+        h1 {
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 28px;
+        }
+
+        .subtitle {
+            color: #666;
+            margin-bottom: 20px;
+            font-size: 14px;
+        }
+
+        .tabs {
+            display: flex;
+            border-bottom: 2px solid #e0e0e0;
+            margin: 0 40px;
+            overflow-x: auto;
+        }
+
+        .tab {
+            padding: 15px 20px;
+            cursor: pointer;
+            border: none;
+            background: none;
+            font-size: 14px;
+            font-weight: 600;
+            color: #888;
+            transition: all 0.3s;
+            border-bottom: 3px solid transparent;
+            margin-bottom: -2px;
+            white-space: nowrap;
+        }
+
+        .tab:hover {
+            color: #667eea;
+        }
+
+        .tab.active {
+            color: #667eea;
+            border-bottom-color: #667eea;
+        }
+
+        .tab-content {
+            padding: 40px;
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .peer-id-section {
+            background: #f5f5f5;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 30px;
+            border: 2px solid #e0e0e0;
+        }
+
+        .peer-id-label {
+            font-weight: 600;
+            color: #555;
+            margin-bottom: 10px;
+            font-size: 14px;
+        }
+
+        .peer-id-display {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .peer-id {
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            word-break: break-all;
+            color: #667eea;
+            font-weight: 600;
+            flex: 1;
+            min-width: 200px;
+        }
+
+        .copy-btn {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: 600;
+            transition: all 0.2s;
+        }
+
+        .copy-btn:hover {
+            background: #5568d3;
+        }
+
+        .copy-btn.copied {
+            background: #4caf50;
+        }
+
+        .section {
+            margin-bottom: 30px;
+        }
+
+        .section-title {
+            font-weight: 600;
+            color: #555;
+            margin-bottom: 15px;
+            font-size: 16px;
+        }
+
+        input[type="text"] {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 14px;
+            margin-bottom: 10px;
+            transition: border-color 0.3s;
+        }
+
+        input[type="text"]:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        input[type="file"] {
+            display: none;
+        }
+
+        .btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            transition: transform 0.2s, box-shadow 0.2s;
+            width: 100%;
+            margin-top: 5px;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn:active {
+            transform: translateY(0);
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .btn.danger {
+            background: linear-gradient(135deg, #f44336 0%, #d32f2f 100%);
+        }
+
+        .btn.secondary {
+            background: linear-gradient(135deg, #78909c 0%, #546e7a 100%);
+        }
+
+        .status {
+            padding: 12px;
+            border-radius: 8px;
+            margin-top: 15px;
+            font-size: 14px;
+        }
+
+        .status.info {
+            background: #e3f2fd;
+            color: #1976d2;
+        }
+
+        .status.success {
+            background: #e8f5e9;
+            color: #388e3c;
+        }
+
+        .status.error {
+            background: #ffebee;
+            color: #c62828;
+        }
+
+        .progress-container {
+            margin-top: 15px;
+            display: none;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: #e0e0e0;
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+            width: 0%;
+            transition: width 0.3s;
+        }
+
+        .progress-text {
+            margin-top: 8px;
+            font-size: 12px;
+            color: #666;
+            text-align: center;
+        }
+
+        .file-info {
+            background: #f9f9f9;
+            padding: 12px;
+            border-radius: 8px;
+            margin-top: 10px;
+            font-size: 13px;
+            color: #555;
+        }
+
+        .video-container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .video-wrapper {
+            position: relative;
+            background: #000;
+            border-radius: 8px;
+            overflow: hidden;
+            aspect-ratio: 4/3;
+        }
+
+        .video-wrapper video {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .video-label {
+            position: absolute;
+            bottom: 10px;
+            left: 10px;
+            background: rgba(0,0,0,0.7);
+            color: white;
+            padding: 5px 10px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .controls {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+        }
+
+        .controls .btn {
+            flex: 1;
+        }
+
+        /* Chat Styles */
+        .chat-container {
+            display: flex;
+            flex-direction: column;
+            height: 500px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            overflow: hidden;
+            margin-top: 20px;
+        }
+
+        .chat-header {
+            background: #f5f5f5;
+            padding: 15px;
+            border-bottom: 2px solid #e0e0e0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .connection-status {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 13px;
+            color: #666;
+        }
+
+        .status-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: #ccc;
+        }
+
+        .status-dot.online {
+            background: #4caf50;
+            box-shadow: 0 0 8px rgba(76, 175, 80, 0.6);
+        }
+
+        .status-dot.offline {
+            background: #f44336;
+        }
+
+        .chat-messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+            background: #fafafa;
+        }
+
+        .message {
+            margin-bottom: 15px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .message.sent {
+            align-items: flex-end;
+        }
+
+        .message.received {
+            align-items: flex-start;
+        }
+
+        .message-bubble {
+            max-width: 70%;
+            padding: 10px 15px;
+            border-radius: 12px;
+            word-wrap: break-word;
+            font-size: 14px;
+        }
+
+        .message.sent .message-bubble {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .message.received .message-bubble {
+            background: white;
+            color: #333;
+            border: 1px solid #e0e0e0;
+        }
+
+        .message-time {
+            font-size: 11px;
+            color: #999;
+            margin-top: 5px;
+        }
+
+        .chat-input-container {
+            border-top: 2px solid #e0e0e0;
+            padding: 15px;
+            background: white;
+            display: flex;
+            gap: 10px;
+        }
+
+        .chat-input {
+            flex: 1;
+            padding: 10px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 14px;
+        }
+
+        .chat-input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .send-btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.2s;
+        }
+
+        .send-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .chat-controls {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+        }
+
+        .chat-controls .btn {
+            flex: 1;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                border-radius: 0;
+            }
+
+            .header, .tabs, .tab-content {
+                padding: 20px;
+            }
+
+            .tabs {
+                margin: 0 20px;
+            }
+
+            h1 {
+                font-size: 22px;
+            }
+
+            .video-container {
+                grid-template-columns: 1fr;
+            }
+
+            .message-bubble {
+                max-width: 85%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🚀 P2P Communication Suite</h1>
+            <p class="subtitle">Direct peer-to-peer file sharing, video calls, and secure chat</p>
+            <div style="margin-top:12px;display:flex;gap:8px;align-items:center;">
+                <input type="text" id="displayNameInput" placeholder="Set your display name" style="padding:8px;border-radius:6px;border:1px solid #ddd;min-width:220px;">
+                <button class="btn" style="width:auto;padding:8px 12px;" onclick="setDisplayName()">Set Name</button>
+                <div style="margin-left:8px;color:#444;font-weight:600;">Current: <span id="displayNameDisplay">Anonymous</span></div>
+            </div>
+        </div>
+
+        <div class="tabs">
+            <button class="tab active" onclick="switchTab('file-transfer')">📁 Files</button>
+            <button class="tab" onclick="switchTab('video-call')">🎥 Video</button>
+            <button class="tab" onclick="switchTab('chat')">💬 Chat</button>
+            <button class="tab" onclick="switchTab('voice-room')">🎙️ Voice Room</button>
+        </div>
+
+        <!-- File Transfer Tab -->
+        <div class="tab-content active" id="file-transfer">
+            <div class="peer-id-section">
+                <div class="peer-id-label">Your Peer ID:</div>
+                <div class="peer-id-display">
+                    <div class="peer-id" id="myPeerId">Connecting...</div>
+                    <button class="copy-btn" onclick="copyPeerId('myPeerId')">📋 Copy</button>
+                </div>
+            </div>
+
+            <div class="section">
+                <div class="section-title">Send File</div>
+                <input type="text" id="recipientId" placeholder="Enter recipient's Peer ID">
+                <input type="file" id="fileInput">
+                <button class="btn" onclick="selectFile()">Choose File</button>
+                <button class="btn" id="sendBtn" onclick="sendFile()" disabled>Send File</button>
+                <div id="fileInfo" class="file-info" style="display: none;"></div>
+            </div>
+
+            <div class="progress-container" id="progressContainer">
+                <div class="progress-bar">
+                    <div class="progress-fill" id="progressFill"></div>
+                </div>
+                <div class="progress-text" id="progressText">0%</div>
+            </div>
+
+            <div id="fileStatus"></div>
+        </div>
+
+        <!-- Video Call Tab -->
+        <div class="tab-content" id="video-call">
+            <div class="peer-id-section">
+                <div class="peer-id-label">Your Peer ID:</div>
+                <div class="peer-id-display">
+                    <div class="peer-id" id="myPeerIdVideo">Connecting...</div>
+                    <button class="copy-btn" onclick="copyPeerId('myPeerIdVideo')">📋 Copy</button>
+                </div>
+            </div>
+
+            <div class="section">
+                <div class="section-title">Start Video Call</div>
+                <input type="text" id="callRecipientId" placeholder="Enter recipient's Peer ID to call">
+                <button class="btn" id="callBtn" onclick="startCall()">📞 Start Call</button>
+            </div>
+            
+
+            <div class="video-container" id="videoContainer" style="display: none;">
+                <div class="video-wrapper">
+                    <video id="localVideo" autoplay muted playsinline></video>
+                    <div class="video-label">You</div>
+                </div>
+                <div class="video-wrapper">
+                    <video id="remoteVideo" autoplay playsinline></video>
+                    <div class="video-label">Remote</div>
+                </div>
+            </div>
+
+            <div class="controls" id="callControls" style="display: none;">
+                <button class="btn secondary" id="toggleCamBtn" onclick="toggleCamera()" disabled>📷 Camera On</button>
+                <button class="btn danger" onclick="endCall()">🔴 End Call</button>
+            </div>
+
+            <div id="videoStatus"></div>
+        </>
+
+        <!-- Chat Tab -->
+        <div class="tab-content" id="chat">
+            <div class="peer-id-section">
+                <div class="peer-id-label">Your Peer ID:</div>
+                <div class="peer-id-display">
+                    <div class="peer-id" id="myPeerIdChat">Connecting...</div>
+                    <button class="copy-btn" onclick="copyPeerId('myPeerIdChat')">📋 Copy</button>
+                </div>
+            </div>
+
+            <div class="section">
+                <div class="section-title">Connect to Chat</div>
+                <input type="text" id="chatRecipientId" placeholder="Enter recipient's Peer ID">
+                <button class="btn" onclick="connectChat()">Connect</button>
+            </div>
+
+            <div class="chat-container" id="chatContainer" style="display: none;">
+                <div class="chat-header">
+                    <div class="connection-status">
+                        <div class="status-dot" id="chatStatusDot"></div>
+                        <span id="chatStatusText">Disconnected</span>
+                    </div>
+                </div>
+                <div class="chat-messages" id="chatMessages"></div>
+                <div class="chat-input-container">
+                    <input type="text" class="chat-input" id="messageInput" placeholder="Type a message..." onkeypress="handleEnter(event)">
+                    <button class="send-btn" onclick="sendMessage()">Send</button>
+                </div>
+            </div>
+
+            <div class="chat-controls" id="chatControls" style="display: none;">
+                <button class="btn secondary" onclick="exportChat()">💾 Export Chat</button>
+                <button class="btn secondary" onclick="importChat()">📂 Import Chat</button>
+                <button class="btn danger" onclick="disconnectChat()">Disconnect</button>
+            </div>
+            <input type="file" id="importFileInput" accept=".chatlog" style="display: none;">
+
+            <div id="chatStatus"></div>
+        </div>
+
+        <!-- Voice Room Tab -->
+        <div class="tab-content" id="voice-room">
+            <div class="peer-id-section">
+                <div class="peer-id-label">Room Code:</div>
+                <div class="peer-id-display">
+                    <div class="peer-id" id="roomCode">Not created</div>
+                    <button class="copy-btn" id="copyRoomBtn" onclick="copyPeerId('roomCode')">📋 Copy</button>
+                </div>
+            </div>
+
+            <div class="section">
+                <div class="section-title">Host or Join a Voice Room</div>
+                <div style="display:flex;gap:10px;margin-bottom:10px;">
+                    <button class="btn" onclick="createRoom()" id="hostBtn">🛡️ Host</button>
+                    <input type="text" id="joinRoomInput" placeholder="Enter room code to join">
+                    <button class="btn" onclick="joinRoom()">🔗 Join</button>
+                </div>
+
+                <div style="display:flex;gap:10px;align-items:center;">
+                    <button class="btn secondary" id="toggleMicBtn" onclick="toggleMic()" disabled>🎤 Mute</button>
+                    <button class="btn danger" id="leaveRoomBtn" onclick="leaveRoom()" disabled>Leave</button>
+                </div>
+            </div>
+
+            <div class="section">
+                <div class="section-title">Microphone</div>
+                <div style="display:flex;flex-direction:column;gap:8px;">
+                    <div id="micMeter" style="height:10px;background:#e0e0e0;border-radius:5px;overflow:hidden;">
+                        <div id="micLevel" style="height:100%;width:0%;background:linear-gradient(90deg,#67e,#a4f);"></div>
+                    </div>
+                    <label style="font-size:13px;color:#444;">Input Gain: <span id="micGainValue">100%</span></label>
+                    <input type="range" id="micGainSlider" min="0" max="200" value="100">
+                </div>
+            </div>
+
+            <div class="section">
+                <div class="section-title">Participants</div>
+                <div id="participantsList" style="display:flex;flex-direction:column;gap:8px;"></div>
+            </div>
+
+            <div id="voiceStatus" class="status info">Voice room not started</div>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/peerjs/1.5.2/peerjs.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
+    <script>
+        let peer;
+        let conn;
+        let selectedFile;
+        let localStream;
+        let currentCall;
+        let chatConnection;
+        let chatMessages = [];
+        let isConnected = false;
+        const ENCRYPTION_KEY = 'p2p-chat-secure-key-' + Date.now();
+
+        function switchTab(tabName) {
+            document.querySelectorAll('.tab').forEach(tab => tab.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+            
+            event.target.classList.add('active');
+            document.getElementById(tabName).classList.add('active');
+        }
+
+        function copyPeerId(elementId) {
+            const peerIdElement = document.getElementById(elementId);
+            const peerId = peerIdElement.textContent;
+            
+            if (peerId && peerId !== 'Connecting...') {
+                navigator.clipboard.writeText(peerId).then(() => {
+                    const btn = event.target;
+                    const originalText = btn.textContent;
+                    btn.textContent = '✓ Copied!';
+                    btn.classList.add('copied');
+                    setTimeout(() => {
+                        btn.textContent = originalText;
+                        btn.classList.remove('copied');
+                    }, 2000);
+                });
+            }
+        }
+
+        function showStatus(elementId, message, type = 'info') {
+            const status = document.getElementById(elementId);
+            if (status) {
+                status.className = `status ${type}`;
+                status.textContent = message;
+                status.style.display = 'block';
+            }
+        }
+
+        function updateProgress(percent) {
+            const container = document.getElementById('progressContainer');
+            const fill = document.getElementById('progressFill');
+            const text = document.getElementById('progressText');
+            
+            container.style.display = 'block';
+            fill.style.width = percent + '%';
+            text.textContent = Math.round(percent) + '%';
+        }
+
+        // Initialize PeerJS with better mobile compatibility
+        peer = new Peer({
+            config: {
+                iceServers: [
+                    { urls: 'stun:stun.l.google.com:19302' },
+                    { urls: 'stun:stun1.l.google.com:19302' }
+                ]
+            }
+        });
+
+        peer.on('open', (id) => {
+            console.log('Peer opened with ID:', id);
+            document.getElementById('myPeerId').textContent = id;
+            document.getElementById('myPeerIdVideo').textContent = id;
+            document.getElementById('myPeerIdChat').textContent = id;
+            showStatus('fileStatus', 'Ready to send and receive files!', 'success');
+            showStatus('videoStatus', 'Ready to make video calls!', 'success');
+            showStatus('chatStatus', 'Ready to chat!', 'success');
+            // initialize display name
+            window.voice = window.voice || {};
+            if (!window.voice.username) window.voice.username = 'Anonymous';
+            document.getElementById('displayNameDisplay').textContent = window.voice.username;
+        });
+
+        peer.on('error', (err) => {
+            console.error('Peer error:', err);
+            showStatus('chatStatus', '❌ Peer error: ' + err.type, 'error');
+        });
+
+        // Handle incoming data connections
+        peer.on('connection', (connection) => {
+            console.log('Incoming connection from:', connection.peer);
+            
+            connection.on('open', () => {
+                console.log('Connection opened');
+            });
+
+            connection.on('data', (data) => {
+                console.log('Received data:', data);
+                
+                if (data.type === 'file-info') {
+                    conn = connection;
+                    showStatus('fileStatus', `Receiving: ${data.name} (${formatFileSize(data.size)})`, 'info');
+                } else if (data.type === 'voice-hello') {
+                    // A peer is introducing itself for voice room coordination (joiner -> host)
+                    const helloPeerId = data.peerId;
+                    const helloName = data.name || 'Anonymous';
+                    if (!window.voice) window.voice = {};
+                    if (window.voice.isHost) {
+                        window.voice.dataConns = window.voice.dataConns || {};
+                        window.voice.participants = window.voice.participants || new Set();
+                        window.voice.names = window.voice.names || {};
+                        window.voice.dataConns[helloPeerId] = connection;
+                        window.voice.participants.add(helloPeerId);
+                        window.voice.names[helloPeerId] = helloName;
+                        // send existing peers list (with names) to newcomer
+                        const peers = Array.from(window.voice.participants).map(id => ({ id, name: window.voice.names[id] || id }));
+                        connection.send({ type: 'voice-peers', peers });
+                        // notify existing peers to connect to newcomer (include name)
+                        peers.forEach(p => {
+                            if (p.id === helloPeerId) return;
+                            const c = window.voice.dataConns[p.id];
+                            if (c && c.open) c.send({ type: 'voice-new-peer', peerId: helloPeerId, name: helloName });
+                        });
+                        // add participant UI for the newcomer
+                        const list = document.getElementById('participantsList');
+                        const el = document.createElement('div');
+                        el.id = 'participant-' + helloPeerId;
+                        el.textContent = helloName + ' (' + helloPeerId + ')';
+                        list.appendChild(el);
+                    }
+                } else if (data.type === 'file-data') {
+                    const blob = new Blob([data.data], { type: data.fileType });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = data.name;
+                    a.click();
+                    showStatus('fileStatus', `✅ File received: ${data.name}`, 'success');
+                    document.getElementById('progressContainer').style.display = 'none';
+                } else if (data.type === 'voice-peers') {
+                    // Received list of peers (with names) from host
+                    const peers = data.peers || [];
+                    (async () => {
+                        try {
+                            await ensureLocalAudio();
+                            window.voice.names = window.voice.names || {};
+                            peers.forEach(p => {
+                                if (!p || !p.id) return;
+                                if (p.id === peer.id) return;
+                                window.voice.names[p.id] = p.name || p.id;
+                                try { peer.call(p.id, window.voice.localStream, { metadata: { mode: 'voice' } }); } catch (e) { console.warn(e); }
+                            });
+                        } catch (e) { console.warn('No mic'); }
+                    })();
+                } else if (data.type === 'voice-new-peer') {
+                    const newPeerId = data.peerId;
+                    const newName = data.name || newPeerId;
+                    (async () => {
+                        try {
+                            await ensureLocalAudio();
+                            window.voice.names = window.voice.names || {};
+                            window.voice.names[newPeerId] = newName;
+                            try { peer.call(newPeerId, window.voice.localStream, { metadata: { mode: 'voice' } }); } catch (e) { console.warn(e); }
+                        } catch (e) { console.warn('No mic'); }
+                    })();
+                } else if (data.type === 'voice-remove') {
+                    const pid = data.peerId;
+                    removePeer(pid);
+                } else if (data.type === 'chat-message') {
+                    receiveMessage(data.message, data.timestamp);
+                } else if (data.type === 'chat-connect') {
+                    // This is an incoming chat connection
+                    chatConnection = connection;
+                    updateChatStatus(true);
+                    document.getElementById('chatContainer').style.display = 'flex';
+                    document.getElementById('chatControls').style.display = 'flex';
+                    showStatus('chatStatus', '✅ Chat connected!', 'success');
+                    
+                    // Send confirmation back
+                    connection.send({ type: 'chat-connect-ack' });
+                }
+            });
+
+            connection.on('close', () => {
+                console.log('Connection closed');
+                if (connection === chatConnection) {
+                    updateChatStatus(false);
+                    showStatus('chatStatus', 'Chat disconnected', 'info');
+                }
+                // if this connection was part of voice, remove participant
+                try {
+                    if (window.voice && window.voice.dataConns) {
+                        const keys = Object.keys(window.voice.dataConns || {});
+                        keys.forEach(k => {
+                            if (window.voice.dataConns[k] === connection) {
+                                delete window.voice.dataConns[k];
+                                if (window.voice.names) delete window.voice.names[k];
+                                removePeer(k);
+                            }
+                        });
+                    }
+                } catch(e){}
+            });
+
+            connection.on('error', (err) => {
+                console.error('Connection error:', err);
+            });
+        });
+
+        // Handle incoming calls (video or voice) based on metadata
+        peer.on('call', (call) => {
+            const mode = call.metadata && call.metadata.mode;
+            if (mode === 'voice') {
+                // Answer with local audio-only stream
+                (async () => {
+                    try {
+                        await ensureLocalAudio();
+                        call.answer(window.voice.localStream);
+                        call.on('stream', (remoteStream) => addRemoteStream(call.peer, remoteStream));
+                        call.on('close', () => removePeer(call.peer));
+                    } catch (err) {
+                        console.warn('Failed to answer voice call', err);
+                    }
+                })();
+                return;
+            }
+
+            // Default: handle as video call
+            showStatus('videoStatus', '📞 Incoming call...', 'info');
+            navigator.mediaDevices.getUserMedia({ video: true, audio: true })
+                .then((stream) => {
+                    localStream = stream;
+                    currentCall = call;
+                    call.answer(stream);
+                    document.getElementById('localVideo').srcObject = stream;
+                    document.getElementById('videoContainer').style.display = 'grid';
+                    document.getElementById('callControls').style.display = 'flex';
+                    // enable camera toggle button for incoming answered call
+                    const camBtn = document.getElementById('toggleCamBtn');
+                    if (camBtn) { camBtn.disabled = false; camBtn.textContent = (stream.getVideoTracks()[0] && stream.getVideoTracks()[0].enabled) ? '📷 Camera On' : '📷 Camera Off'; }
+                    call.on('stream', (remoteStream) => {
+                        document.getElementById('remoteVideo').srcObject = remoteStream;
+                        showStatus('videoStatus', '✅ Call connected!', 'success');
+                    });
+                    call.on('close', () => { endCall(); });
+                })
+                .catch((err) => {
+                    showStatus('videoStatus', '❌ Camera/microphone access denied', 'error');
+                });
+        });
+
+        // File Transfer Functions
+        function selectFile() {
+            document.getElementById('fileInput').click();
+        }
+
+        document.getElementById('fileInput').addEventListener('change', (e) => {
+            selectedFile = e.target.files[0];
+            if (selectedFile) {
+                document.getElementById('sendBtn').disabled = false;
+                const info = document.getElementById('fileInfo');
+                info.textContent = `Selected: ${selectedFile.name} (${formatFileSize(selectedFile.size)})`;
+                info.style.display = 'block';
+            }
+        });
+
+        function formatFileSize(bytes) {
+            if (bytes < 1024) return bytes + ' B';
+            if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(2) + ' KB';
+            return (bytes / (1024 * 1024)).toFixed(2) + ' MB';
+        }
+
+        async function sendFile() {
+            const recipientId = document.getElementById('recipientId').value.trim();
+            
+            if (!recipientId) {
+                showStatus('fileStatus', 'Please enter a recipient Peer ID', 'error');
+                return;
+            }
+
+            if (!selectedFile) {
+                showStatus('fileStatus', 'Please select a file first', 'error');
+                return;
+            }
+
+            showStatus('fileStatus', 'Connecting to peer...', 'info');
+
+            conn = peer.connect(recipientId);
+
+            conn.on('open', async () => {
+                showStatus('fileStatus', 'Connected! Sending file...', 'info');
+                
+                conn.send({
+                    type: 'file-info',
+                    name: selectedFile.name,
+                    size: selectedFile.size,
+                    fileType: selectedFile.type
+                });
+
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    updateProgress(50);
+                    conn.send({
+                        type: 'file-data',
+                        name: selectedFile.name,
+                        data: e.target.result,
+                        fileType: selectedFile.type
+                    });
+                    updateProgress(100);
+                    showStatus('fileStatus', '✅ File sent successfully!', 'success');
+                    
+                    setTimeout(() => {
+                        document.getElementById('progressContainer').style.display = 'none';
+                    }, 2000);
+                };
+                reader.readAsArrayBuffer(selectedFile);
+            });
+
+            conn.on('error', (err) => {
+                showStatus('fileStatus', '❌ Connection error', 'error');
+            });
+        }
+
+        // Video Call Functions
+        async function startCall() {
+            const recipientId = document.getElementById('callRecipientId').value.trim();
+            
+            if (!recipientId) {
+                showStatus('videoStatus', 'Please enter a recipient Peer ID', 'error');
+                return;
+            }
+
+            showStatus('videoStatus', 'Accessing camera and microphone...', 'info');
+
+            try {
+                localStream = await navigator.mediaDevices.getUserMedia({ 
+                    video: { facingMode: 'user' }, 
+                    audio: true 
+                });
+
+                document.getElementById('localVideo').srcObject = localStream;
+                document.getElementById('videoContainer').style.display = 'grid';
+                document.getElementById('callControls').style.display = 'flex';
+                // enable camera toggle button
+                const camBtn = document.getElementById('toggleCamBtn');
+                if (camBtn) { camBtn.disabled = false; camBtn.textContent = '📷 Camera On'; }
+
+                showStatus('videoStatus', 'Calling...', 'info');
+
+                currentCall = peer.call(recipientId, localStream, { metadata: { mode: 'video' } });
+
+                currentCall.on('stream', (remoteStream) => {
+                    document.getElementById('remoteVideo').srcObject = remoteStream;
+                    showStatus('videoStatus', '✅ Call connected!', 'success');
+                });
+
+                currentCall.on('close', () => {
+                    endCall();
+                });
+
+                currentCall.on('error', (err) => {
+                    showStatus('videoStatus', '❌ Call error', 'error');
+                    endCall();
+                });
+
+            } catch (err) {
+                showStatus('videoStatus', '❌ Camera/microphone access denied', 'error');
+            }
+        }
+
+        function endCall() {
+            if (localStream) {
+                localStream.getTracks().forEach(track => track.stop());
+                localStream = null;
+            }
+
+            if (currentCall) {
+                currentCall.close();
+                currentCall = null;
+            }
+
+            document.getElementById('localVideo').srcObject = null;
+            document.getElementById('remoteVideo').srcObject = null;
+            document.getElementById('videoContainer').style.display = 'none';
+            document.getElementById('callControls').style.display = 'none';
+
+            // disable camera toggle button
+            const camBtn = document.getElementById('toggleCamBtn');
+            if (camBtn) { camBtn.disabled = true; camBtn.textContent = '📷 Camera On'; }
+
+            showStatus('videoStatus', 'Call ended', 'info');
+        }
+
+        // Chat Functions
+        function connectChat() {
+            const recipientId = document.getElementById('chatRecipientId').value.trim();
+            
+            if (!recipientId) {
+                showStatus('chatStatus', 'Please enter a recipient Peer ID', 'error');
+                return;
+            }
+
+            showStatus('chatStatus', 'Connecting...', 'info');
+
+            chatConnection = peer.connect(recipientId, {
+                reliable: true
+            });
+
+            chatConnection.on('open', () => {
+                console.log('Chat connection opened');
+                chatConnection.send({ type: 'chat-connect' });
+                updateChatStatus(true);
+                document.getElementById('chatContainer').style.display = 'flex';
+                document.getElementById('chatControls').style.display = 'flex';
+                showStatus('chatStatus', '✅ Chat connected!', 'success');
+            });
+
+            chatConnection.on('data', (data) => {
+                console.log('Chat data received:', data);
+                if (data.type === 'chat-message') {
+                    receiveMessage(data.message, data.timestamp);
+                } else if (data.type === 'chat-connect-ack') {
+                    console.log('Chat connection acknowledged');
+                }
+            });
+
+            chatConnection.on('close', () => {
+                console.log('Chat connection closed');
+                updateChatStatus(false);
+                showStatus('chatStatus', 'Chat disconnected', 'info');
+            });
+
+            chatConnection.on('error', (err) => {
+                console.error('Chat connection error:', err);
+                showStatus('chatStatus', '❌ Connection error', 'error');
+            });
+        }
+
+        function updateChatStatus(online) {
+            isConnected = online;
+            const dot = document.getElementById('chatStatusDot');
+            const text = document.getElementById('chatStatusText');
+            
+            if (online) {
+                dot.classList.add('online');
+                dot.classList.remove('offline');
+                text.textContent = 'Online';
+            } else {
+                dot.classList.remove('online');
+                dot.classList.add('offline');
+                text.textContent = 'Offline';
+            }
+        }
+
+        function sendMessage() {
+            const input = document.getElementById('messageInput');
+            const message = input.value.trim();
+            
+            if (!message) return;
+            
+            if (!chatConnection) {
+                showStatus('chatStatus', 'Not connected to chat', 'error');
+                return;
+            }
+
+            const timestamp = new Date().toISOString();
+            
+            try {
+                chatConnection.send({
+                    type: 'chat-message',
+                    message: message,
+                    timestamp: timestamp
+                });
+                console.log('Message sent:', message);
+
+                displayMessage(message, 'sent', timestamp);
+                chatMessages.push({ message, type: 'sent', timestamp });
+                input.value = '';
+            } catch (err) {
+                console.error('Error sending message:', err);
+                showStatus('chatStatus', '❌ Failed to send message', 'error');
+            }
+        }
+
+        function receiveMessage(message, timestamp) {
+            displayMessage(message, 'received', timestamp);
+            chatMessages.push({ message, type: 'received', timestamp });
+        }
+
+function displayMessage(message, type, timestamp) {
+    const messagesContainer = document.getElementById('chatMessages');
+    const messageDiv = document.createElement('div');
+    messageDiv.className = `message ${type}`;
+    
+    // 创建消息气泡
+    const bubble = document.createElement('div');
+    bubble.className = 'message-bubble';
+    bubble.textContent = message;
+    
+    // 创建时间显示
+    const time = document.createElement('div');
+    time.className = 'message-time';
+    time.textContent = new Date(timestamp).toLocaleTimeString();
+    
+    messageDiv.appendChild(bubble);
+    messageDiv.appendChild(time);
+    messagesContainer.appendChild(messageDiv);
+    messagesContainer.scrollTop = messagesContainer.scrollHeight;
+}
+
+    function handleEnter(event) {
+        if (event.key === 'Enter') {
+            sendMessage();
+        }
+    }
+
+    function disconnectChat() {
+        if (chatMessages.length > 0) {
+            if (confirm('You have unsaved messages. Do you want to save this chat before disconnecting?')) {
+                exportChat();
+            }
+        }
+
+        if (chatConnection) {
+            chatConnection.close();
+            chatConnection = null;
+        }
+        
+        updateChatStatus(false);
+        document.getElementById('chatContainer').style.display = 'none';
+        document.getElementById('chatControls').style.display = 'none';
+        showStatus('chatStatus', 'Disconnected', 'info');
+    }
+
+    function exportChat() {
+        if (chatMessages.length === 0) {
+            showStatus('chatStatus', 'No messages to export', 'info');
+            return;
+        }
+
+        const encrypted = CryptoJS.AES.encrypt(JSON.stringify(chatMessages), ENCRYPTION_KEY).toString();
+        const blob = new Blob([encrypted], { type: 'text/plain' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `chat_${new Date().getTime()}.chatlog`;
+        a.click();
+        showStatus('chatStatus', '✅ Chat exported successfully!', 'success');
+    }
+
+    function importChat() {
+        document.getElementById('importFileInput').click();
+    }
+
+    document.getElementById('importFileInput').addEventListener('change', (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = (event) => {
+            try {
+                const encrypted = event.target.result;
+                const decrypted = CryptoJS.AES.decrypt(encrypted, ENCRYPTION_KEY).toString(CryptoJS.enc.Utf8);
+                const messages = JSON.parse(decrypted);
+                
+                chatMessages = messages;
+                const messagesContainer = document.getElementById('chatMessages');
+                messagesContainer.innerHTML = '';
+                
+                messages.forEach(msg => {
+                    displayMessage(msg.message, msg.type, msg.timestamp);
+                });
+                
+                showStatus('chatStatus', '✅ Chat history imported!', 'success');
+            } catch (err) {
+                showStatus('chatStatus', '❌ Invalid chat file', 'error');
+            }
+        };
+        reader.readAsText(file);
+    });
+
+    // Warn before closing if there are unsaved messages
+    window.addEventListener('beforeunload', (e) => {
+        if (chatMessages.length > 0 && isConnected) {
+            e.preventDefault();
+            e.returnValue = '';
+        }
+    });
+
+    // ---------------------- Voice Room using PeerJS ----------------------
+    window.voice = window.voice || { isHost: false, roomHostId: null, dataConns: {}, participants: new Set(), pcs: {}, localStream: null };
+
+    async function ensureLocalAudio() {
+        if (window.voice.localStream) return;
+        try {
+            // get raw mic stream
+            const raw = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+            window.voice.rawLocalStream = raw;
+
+            // create audio processing graph to apply gain and analyser
+            window.voice.audioCtx = window.voice.audioCtx || new (window.AudioContext || window.webkitAudioContext)();
+            const src = window.voice.audioCtx.createMediaStreamSource(raw);
+            const analyser = window.voice.audioCtx.createAnalyser();
+            analyser.fftSize = 256;
+            const gainNode = window.voice.audioCtx.createGain();
+            gainNode.gain.value = (document.getElementById('micGainSlider') ? Number(document.getElementById('micGainSlider').value) : 100) / 100;
+            const dest = window.voice.audioCtx.createMediaStreamDestination();
+
+            src.connect(analyser);
+            analyser.connect(gainNode);
+            gainNode.connect(dest);
+
+            window.voice.analyser = analyser;
+            window.voice.gainNode = gainNode;
+            window.voice.localStream = dest.stream; // processed stream sent to peers
+
+            document.getElementById('toggleMicBtn').textContent = '🔇 Unmute';
+
+            // setup mic meter animation
+            const micLevelEl = document.getElementById('micLevel');
+            function updateMeter() {
+                if (!window.voice.analyser) return requestAnimationFrame(updateMeter);
+                const arr = new Uint8Array(window.voice.analyser.frequencyBinCount);
+                window.voice.analyser.getByteFrequencyData(arr);
+                let sum = 0;
+                for (let i = 0; i < arr.length; i++) sum += arr[i];
+                const avg = sum / arr.length;
+                const pct = Math.min(100, Math.max(0, avg / 2));
+                if (micLevelEl) micLevelEl.style.width = pct + '%';
+                requestAnimationFrame(updateMeter);
+            }
+            requestAnimationFrame(updateMeter);
+
+            // wire gain slider
+            const gainSlider = document.getElementById('micGainSlider');
+            const gainLabel = document.getElementById('micGainValue');
+            if (gainSlider) {
+                gainSlider.addEventListener('input', () => {
+                    const v = Number(gainSlider.value) / 100;
+                    if (window.voice.gainNode) window.voice.gainNode.gain.value = v;
+                    if (gainLabel) gainLabel.textContent = Math.round(v * 100) + '%';
+                });
+            }
+
+        } catch (err) {
+            showStatus('voiceStatus', 'Microphone access denied', 'error');
+            throw err;
+        }
+    }
+
+    function setDisplayName() {
+        const v = document.getElementById('displayNameInput').value.trim();
+        window.voice = window.voice || {};
+        window.voice.username = v || 'Anonymous';
+        document.getElementById('displayNameDisplay').textContent = window.voice.username;
+    }
+
+    function createRoom() {
+        if (!peer || !peer.id) {
+            showStatus('voiceStatus', 'PeerJS not ready yet, try again', 'error');
+            return;
+        }
+        window.voice.isHost = true;
+        window.voice.roomHostId = peer.id;
+        window.voice.participants = new Set();
+        window.voice.dataConns = {};
+        window.voice.names = window.voice.names || {};
+        window.voice.participants.add(peer.id);
+        // set host name if provided
+        if (window.voice.username) window.voice.names[peer.id] = window.voice.username;
+        document.getElementById('roomCode').textContent = peer.id;
+        document.getElementById('toggleMicBtn').disabled = false;
+        document.getElementById('leaveRoomBtn').disabled = false;
+        showStatus('voiceStatus', 'Room created: ' + peer.id, 'success');
+        // show host in participants list
+        const list = document.getElementById('participantsList');
+        list.innerHTML = '';
+        const el = document.createElement('div');
+        el.id = 'participant-' + peer.id;
+        el.textContent = (window.voice && window.voice.names && window.voice.names[peer.id]) ? (window.voice.names[peer.id] + ' (' + peer.id + ')') : ('Host: ' + peer.id);
+        list.appendChild(el);
+    }
+
+    function joinRoom() {
+        const hostId = document.getElementById('joinRoomInput').value.trim();
+        if (!hostId) { showStatus('voiceStatus', 'Enter a room code to join', 'error'); return; }
+        const conn = peer.connect(hostId, { reliable: true });
+        conn.on('open', async () => {
+            try { await ensureLocalAudio(); } catch(e) { return; }
+            window.voice.roomHostId = hostId;
+            window.voice.isHost = false;
+            conn.send({ type: 'voice-hello', peerId: peer.id, name: (window.voice.username || 'Anonymous') });
+            document.getElementById('roomCode').textContent = hostId;
+            document.getElementById('toggleMicBtn').disabled = false;
+            document.getElementById('leaveRoomBtn').disabled = false;
+            showStatus('voiceStatus', 'Joined room: ' + hostId, 'success');
+        });
+        conn.on('data', (data) => { console.log('Joiner data:', data); });
+        conn.on('close', () => { showStatus('voiceStatus', 'Disconnected from host', 'info'); });
+    }
+
+    function addRemoteStream(peerId, stream) {
+        let container = document.getElementById('participantsList');
+        let row = document.getElementById('participant-' + peerId);
+        if (row) return;
+        row = document.createElement('div');
+        row.id = 'participant-' + peerId;
+        row.style.display = 'flex';
+        row.style.alignItems = 'center';
+        row.style.gap = '10px';
+        const name = (window.voice && window.voice.names && window.voice.names[peerId]) ? window.voice.names[peerId] : peerId;
+
+        const label = document.createElement('div');
+        label.textContent = name + ' (' + peerId + ')';
+        label.style.fontWeight = '600';
+
+        const audio = document.createElement('audio');
+        audio.autoplay = true;
+        audio.controls = false;
+        audio.srcObject = stream;
+
+        const volWrapper = document.createElement('div');
+        volWrapper.style.display = 'flex';
+        volWrapper.style.alignItems = 'center';
+        volWrapper.style.gap = '8px';
+
+        const volSlider = document.createElement('input');
+        volSlider.type = 'range';
+        volSlider.min = 0;
+        volSlider.max = 200;
+        volSlider.value = 100;
+        volSlider.addEventListener('input', () => {
+            const v = Number(volSlider.value) / 100;
+            audio.volume = Math.min(2, Math.max(0, v));
+        });
+
+        volWrapper.appendChild(volSlider);
+
+        row.appendChild(label);
+        row.appendChild(audio);
+        row.appendChild(volWrapper);
+        container.appendChild(row);
+    }
+
+    function removePeer(peerId) {
+        const row = document.getElementById('participant-' + peerId);
+        if (row) row.remove();
+        if (window.voice && window.voice.participants) window.voice.participants.delete(peerId);
+    }
+
+    function toggleMic() {
+        if (!window.voice.localStream) {
+            ensureLocalAudio().then(() => {
+                document.getElementById('toggleMicBtn').textContent = '🔇 Unmute';
+                showStatus('voiceStatus', 'Microphone enabled', 'success');
+            }).catch(()=>{});
+            return;
+        }
+        const track = window.voice.localStream.getAudioTracks()[0];
+        if (!track) return;
+        track.enabled = !track.enabled;
+        document.getElementById('toggleMicBtn').textContent = track.enabled ? '🔇 Unmute' : '🎤 Mute';
+    }
+
+    function toggleCamera() {
+        if (!localStream) return;
+        const videoTracks = localStream.getVideoTracks ? localStream.getVideoTracks() : [];
+        if (!videoTracks || videoTracks.length === 0) return;
+        videoTracks.forEach(t => { t.enabled = !t.enabled; });
+        const enabled = videoTracks[0].enabled;
+        const camBtn = document.getElementById('toggleCamBtn');
+        if (camBtn) camBtn.textContent = enabled ? '📷 Camera On' : '📷 Camera Off';
+    }
+
+    function leaveRoom() {
+        if (!window.voice) return;
+        if (!window.voice.isHost && window.voice.roomHostId) {
+            const conn = peer.connect(window.voice.roomHostId);
+            conn.on('open', () => conn.send({ type: 'voice-remove', peerId: peer.id }));
+        } else if (window.voice.isHost) {
+            Object.values(window.voice.dataConns || {}).forEach(c => { if (c && c.open) c.send({ type: 'voice-remove', peerId: peer.id }); });
+        }
+        Object.keys(window.voice.dataConns || {}).forEach(k => delete window.voice.dataConns[k]);
+        if (window.voice.localStream) { window.voice.localStream.getTracks().forEach(t => t.stop()); window.voice.localStream = null; }
+        window.voice.participants = new Set();
+        window.voice.isHost = false;
+        window.voice.roomHostId = null;
+        document.getElementById('roomCode').textContent = 'Not created';
+        document.getElementById('toggleMicBtn').disabled = true;
+        document.getElementById('leaveRoomBtn').disabled = true;
+        document.getElementById('participantsList').innerHTML = '';
+        showStatus('voiceStatus', 'Left the room', 'info');
+    }
+</script>
+</body>
+</html>
+</parameter>
