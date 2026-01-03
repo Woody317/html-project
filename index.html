@@ -5,22 +5,50 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>P2P Communication Suite</title>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
+        :root {
+            --main-bg: #ffffff;
+            --main-text: #333333;
+            --container-bg: #ffffff;
+            --container-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            --input-bg: #fff;
+            --input-border: #e0e0e0;
+            --input-text: #333;
         }
-
+        body.dark-mode {
+            --main-bg: #181c24;
+            --main-text: #e0e6f0;
+            --container-bg: #232a36;
+            --container-shadow: 0 20px 60px rgba(0,0,0,0.7);
+            --input-bg: #232a36;
+            --input-border: #384055;
+            --input-text: #e0e6f0;
+        }
+        html, body {
+            height: 100%;
+        }
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background: #0a0a0a;
             min-height: 100vh;
+            height: 100%;
             display: flex;
+            flex-direction: column;
             align-items: center;
             justify-content: center;
-            padding: 20px;
-            overflow: hidden;
-            position: relative;
+        }
+        #mainWrapper {
+            min-height: 100vh;
+            min-width: 100vw;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+        body {
+            background: var(--main-bg) !important;
+            color: var(--main-text);
+            transition: background 0.5s cubic-bezier(.4,0,.2,1), color 0.5s cubic-bezier(.4,0,.2,1);
+            min-height: 100vh;
+            height: auto;
+            overflow-y: auto;
         }
 
         /* Wave background with SVG curves */
@@ -45,14 +73,16 @@
         }
 
         .container {
-            background: white;
-            border-radius: 16px;
-            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            background: var(--container-bg);
+            color: var(--main-text);
+            box-shadow: var(--container-shadow);
+            transition: background 0.5s cubic-bezier(.4,0,.2,1), color 0.5s cubic-bezier(.4,0,.2,1);
             max-width: 900px;
             width: 100%;
             overflow: hidden;
             position: relative;
             z-index: 10;
+            margin: 40px auto;
         }
         }
 
@@ -61,7 +91,7 @@
         }
 
         h1 {
-            color: #333;
+            color: var(--main-text);
             margin-bottom: 10px;
             font-size: 28px;
         }
@@ -105,6 +135,8 @@
         .tab-content {
             padding: 40px;
             display: none;
+            background: var(--container-bg);
+            color: var(--main-text);
         }
 
         .tab-content.active {
@@ -182,9 +214,28 @@
             font-size: 14px;
             margin-bottom: 10px;
             transition: border-color 0.3s;
+            background: var(--input-bg);
+            color: var(--input-text);
         }
 
         input[type="text"]:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        input[type="password"], textarea {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 14px;
+            margin-bottom: 10px;
+            transition: border-color 0.3s;
+            background: var(--input-bg);
+            color: var(--input-text);
+        }
+
+        input[type="password"]:focus, textarea:focus {
             outline: none;
             border-color: #667eea;
         }
@@ -550,7 +601,8 @@
 </head>
 <body>
     <div class="wave-bg" id="waveBg"></div>
-    <div class="container">
+    <div id="mainWrapper">
+      <div class="container">
         <div style="position: absolute; top: 20px; right: 20px; z-index: 100;">
             <button class="btn" id="settingsBtn" style="width: 40px; height: 40px; padding: 0; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 20px; background: #f0f0f0; border: 2px solid #ddd; cursor: pointer;">⚙️</button>
         </div>
@@ -718,6 +770,7 @@
 
             <div id="voiceStatus" class="status info">Voice room not started</div>
         </div>
+    </div>
     </div>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/peerjs/1.5.2/peerjs.min.js"></script>
@@ -1544,6 +1597,12 @@ function displayMessage(message, type, timestamp) {
         const enabled = savedPixelFlowState === null ? true : savedPixelFlowState === 'true';
         window.pixelFlowEnabled = enabled;
         document.getElementById('animationToggle').checked = enabled;
+        // dark mode
+        const savedDark = localStorage.getItem('darkMode');
+        const dark = savedDark === 'true';
+        document.body.classList.toggle('dark-mode', dark);
+        const darkToggle = document.getElementById('darkModeToggle');
+        if (darkToggle) darkToggle.checked = dark;
     }
 
     function toggleWaveAnimation(enabled) {
@@ -1566,21 +1625,31 @@ function displayMessage(message, type, timestamp) {
         const settingsBtn = document.getElementById('settingsBtn');
         const settingsModal = document.getElementById('settingsModal');
         const animationToggle = document.getElementById('animationToggle');
+        const darkModeToggle = document.getElementById('darkModeToggle');
         if (settingsBtn) settingsBtn.addEventListener('click', openSettings);
         if (settingsModal) settingsModal.addEventListener('click', (e) => { if (e.target === settingsModal) closeSettings(); });
         if (animationToggle) animationToggle.addEventListener('change', (e) => { toggleWaveAnimation(e.target.checked); });
+        if (darkModeToggle) darkModeToggle.addEventListener('change', (e) => {
+            const enabled = e.target.checked;
+            document.body.classList.toggle('dark-mode', enabled);
+            localStorage.setItem('darkMode', enabled);
+        });
         initSettings();
     });
-
-    // Fallback for if DOMContentLoaded already fired
     if (document.readyState !== 'loading') {
         setTimeout(() => {
             const settingsBtn = document.getElementById('settingsBtn');
             const settingsModal = document.getElementById('settingsModal');
             const animationToggle = document.getElementById('animationToggle');
+            const darkModeToggle = document.getElementById('darkModeToggle');
             if (settingsBtn) settingsBtn.addEventListener('click', openSettings);
             if (settingsModal) settingsModal.addEventListener('click', (e) => { if (e.target === settingsModal) closeSettings(); });
             if (animationToggle) animationToggle.addEventListener('change', (e) => { toggleWaveAnimation(e.target.checked); });
+            if (darkModeToggle) darkModeToggle.addEventListener('change', (e) => {
+                const enabled = e.target.checked;
+                document.body.classList.toggle('dark-mode', enabled);
+                localStorage.setItem('darkMode', enabled);
+            });
             initSettings();
         }, 0);
     }
@@ -1661,6 +1730,43 @@ function displayMessage(message, type, timestamp) {
         }
         // 动画主循环
         let lastTime = Date.now();
+        // 灯珠消散动画状态
+        let fadeOut = false;
+        let fadeAlpha = [];
+        function startFadeOut() {
+            fadeOut = true;
+            fadeAlpha = [];
+            for (let y = 0; y < grid.rows; y++) {
+                fadeAlpha[y] = [];
+                for (let x = 0; x < grid.cols; x++) {
+                    fadeAlpha[y][x] = 0;
+                }
+            }
+            // 记录当前所有亮度
+            for (let y = 0; y < grid.rows; y++) {
+                const flow = flows[y];
+                for (let x = 0; x < grid.cols; x++) {
+                    let alpha = 0.12;
+                    if (flow.active) {
+                        const head = flow.pos;
+                        const tail = head - flow.length;
+                        if (x === head) alpha = 1.0;
+                        else if (x < head && x > tail) {
+                            alpha = 0.5 + 0.5*(x-tail)/flow.length;
+                        } else if (x === tail) {
+                            alpha = 0.3;
+                        }
+                    }
+                    fadeAlpha[y][x] = alpha;
+                }
+            }
+        }
+        // 监听开关变化
+        const origToggle = window.toggleWaveAnimation;
+        window.toggleWaveAnimation = function(enabled) {
+            if (!enabled) startFadeOut();
+            if (origToggle) origToggle(enabled);
+        }
         function animate() {
             ctx.clearRect(0,0,canvas.width,canvas.height);
             const {size, cols, rows} = grid;
@@ -1669,6 +1775,7 @@ function displayMessage(message, type, timestamp) {
             const newGrid = getGrid();
             if (newGrid.cols !== cols || newGrid.rows !== rows || newGrid.size !== size) {
                 initFlows();
+                fadeOut = false;
             }
             // 绘制所有像素
             for (let y = 0; y < grid.rows; y++) {
@@ -1710,12 +1817,27 @@ function displayMessage(message, type, timestamp) {
                         } else if (x === tail) {
                             alpha = 0.3;
                         }
+                    } else if (fadeOut && fadeAlpha[y] && fadeAlpha[y][x] > 0.13) {
+                        // 渐变消散
+                        fadeAlpha[y][x] = Math.max(0.12, fadeAlpha[y][x] - 0.04);
+                        alpha = fadeAlpha[y][x];
                     }
                     // 让像素格完整填充屏幕
                     let px = x*(size+pixelGap);
                     let py = y*(size+pixelGap);
                     drawPixel(px, py, size, r, pixelColor(alpha));
                 }
+            }
+            // 消散动画结束后自动关闭fadeOut
+            if (fadeOut) {
+                let allDark = true;
+                for (let y = 0; y < grid.rows; y++) {
+                    for (let x = 0; x < grid.cols; x++) {
+                        if (fadeAlpha[y][x] > 0.13) { allDark = false; break; }
+                    }
+                    if (!allDark) break;
+                }
+                if (allDark) fadeOut = false;
             }
             lastTime = Date.now();
             requestAnimationFrame(animate);
@@ -1730,10 +1852,10 @@ function displayMessage(message, type, timestamp) {
 
     <!-- Settings Modal -->
     <div id="settingsModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:1000; align-items:center; justify-content:center;">
-        <div style="background:white; padding:30px; border-radius:12px; box-shadow:0 10px 40px rgba(0,0,0,0.3); max-width:350px; width:100%; margin:20px;">
-            <h2 style="margin-bottom:24px; color:#333; font-size:20px;">Settings</h2>
+        <div style="background:var(--container-bg); padding:30px; border-radius:12px; box-shadow:0 10px 40px rgba(0,0,0,0.3); max-width:350px; width:100%; margin:20px; color:var(--main-text);">
+            <h2 style="margin-bottom:24px; color:var(--main-text); font-size:20px;">Settings</h2>
             <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:16px; padding-bottom:16px; border-bottom:1px solid #f0f0f0;">
-                <label style="color:#333; font-weight:500; margin:0; font-size:16px;">
+                <label style="color:var(--main-text); font-weight:500; margin:0; font-size:16px;">
                     🟦 Pixel Flow 动画
                 </label>
                 <label class="toggle-switch">
@@ -1742,6 +1864,18 @@ function displayMessage(message, type, timestamp) {
                 </label>
             </div>
             <p style="color:#999; font-size:13px; margin:0;">关闭后所有像素格子都不发光，默认开启。可减少GPU占用。</p>
+            <div style="display:flex; align-items:center; justify-content:space-between; margin-top:18px;">
+                <label style="color:var(--main-text); font-weight:500; font-size:16px; display:flex; align-items:center; gap:8px;">
+                    <span style="font-size:18px;">☀️</span> 白天模式
+                </label>
+                <label class="toggle-switch">
+                    <input type="checkbox" id="darkModeToggle">
+                    <span class="toggle-slider"></span>
+                </label>
+                <label style="color:var(--main-text); font-weight:500; font-size:16px; display:flex; align-items:center; gap:8px;">
+                    夜间模式 <span style="font-size:18px;">🌙</span>
+                </label>
+            </div>
         </div>
     </div>
 </body>
