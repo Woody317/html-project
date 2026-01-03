@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>P2P 诊断工具</title>
+</head>
+<body>
+    <h1>P2P 功能诊断</h1>
+    <div id="results"></div>
+    
+    <script>
+        const results = document.getElementById('results');
+        
+        async function runTests() {
+            const tests = [
+                { name: 'WebRTC支持', test: () => !!window.RTCPeerConnection },
+                { name: 'getUserMedia支持', test: () => !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia) },
+                { name: 'WebSocket支持', test: () => !!window.WebSocket },
+                { name: 'HTTPS/安全上下文', test: () => window.location.protocol === 'https:' || window.location.hostname === 'localhost' },
+                { name: 'PeerJS库加载', test: () => {
+                    return new Promise(resolve => {
+                        const script = document.createElement('script');
+                        script.src = 'https://cdnjs.cloudflare.com/ajax/libs/peerjs/1.5.2/peerjs.min.js';
+                        script.onload = () => resolve(true);
+                        script.onerror = () => resolve(false);
+                        document.head.appendChild(script);
+                    });
+                }}
+            ];
+            
+            for (const test of tests) {
+                try {
+                    const result = await (typeof test.test === 'function' ? test.test() : test.test);
+                    results.innerHTML += `<div style="color: ${result ? 'green' : 'red'}">
+                        ${result ? '✅' : '❌'} ${test.name}: ${result ? '通过' : '失败'}
+                    </div>`;
+                } catch (err) {
+                    results.innerHTML += `<div style="color: orange">
+                        ⚠️ ${test.name}: 错误 - ${err.message}
+                    </div>`;
+                }
+            }
+        }
+        
+        runTests();
+    </script>
+</body>
+</html>

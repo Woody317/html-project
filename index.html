@@ -13,12 +13,35 @@
 
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: #0a0a0a;
             min-height: 100vh;
             display: flex;
             align-items: center;
             justify-content: center;
             padding: 20px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        /* Wave background with SVG curves */
+        .wave-bg {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: #0a0a0a;
+            z-index: 0;
+            overflow: hidden;
+        }
+
+        .wave-bg canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: block;
         }
 
         .container {
@@ -28,6 +51,9 @@
             max-width: 900px;
             width: 100%;
             overflow: hidden;
+            position: relative;
+            z-index: 10;
+        }
         }
 
         .header {
@@ -466,11 +492,68 @@
             .message-bubble {
                 max-width: 85%;
             }
+
+            .network-status {
+                top: 8px;
+                right: 8px;
+                padding: 6px 12px;
+                font-size: 12px;
+            }
+        }
+
+        /* iOS Toggle Switch */
+        .toggle-switch {
+            position: relative;
+            display: inline-block;
+            width: 50px;
+            height: 28px;
+        }
+
+        .toggle-switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .toggle-slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #ccc;
+            transition: 0.3s;
+            border-radius: 28px;
+        }
+
+        .toggle-slider:before {
+            position: absolute;
+            content: "";
+            height: 22px;
+            width: 22px;
+            left: 3px;
+            bottom: 3px;
+            background-color: white;
+            transition: 0.3s;
+            border-radius: 50%;
+        }
+
+        input:checked + .toggle-slider {
+            background-color: #34c759;
+        }
+
+        input:checked + .toggle-slider:before {
+            transform: translateX(22px);
         }
     </style>
 </head>
 <body>
+    <div class="wave-bg" id="waveBg"></div>
     <div class="container">
+        <div style="position: absolute; top: 20px; right: 20px; z-index: 100;">
+            <button class="btn" id="settingsBtn" style="width: 40px; height: 40px; padding: 0; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 20px; background: #f0f0f0; border: 2px solid #ddd; cursor: pointer;">⚙️</button>
+        </div>
         <div class="header">
             <h1>🚀 P2P Communication Suite</h1>
             <p class="subtitle">Direct peer-to-peer file sharing, video calls, and secure chat</p>
@@ -551,7 +634,7 @@
             </div>
 
             <div id="videoStatus"></div>
-        </>
+        </div>
 
         <!-- Chat Tab -->
         <div class="tab-content" id="chat">
@@ -880,7 +963,9 @@
                         document.getElementById('remoteVideo').srcObject = remoteStream;
                         showStatus('videoStatus', '✅ Call connected!', 'success');
                     });
-                    call.on('close', () => { endCall(); });
+                    call.on('close', () => { 
+                        endCall();
+                    });
                 })
                 .catch((err) => {
                     showStatus('videoStatus', '❌ Camera/microphone access denied', 'error');
@@ -1225,63 +1310,48 @@ function displayMessage(message, type, timestamp) {
         }
     });
 
+    // ---------------------- Network Latency Detection ----------------------
     // ---------------------- Voice Room using PeerJS ----------------------
     window.voice = window.voice || { isHost: false, roomHostId: null, dataConns: {}, participants: new Set(), pcs: {}, localStream: null };
 
     async function ensureLocalAudio() {
         if (window.voice.localStream) return;
         try {
-            // get raw mic stream
-            const raw = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
-            window.voice.rawLocalStream = raw;
-
-            // create audio processing graph to apply gain and analyser
-            window.voice.audioCtx = window.voice.audioCtx || new (window.AudioContext || window.webkitAudioContext)();
-            const src = window.voice.audioCtx.createMediaStreamSource(raw);
-            const analyser = window.voice.audioCtx.createAnalyser();
-            analyser.fftSize = 256;
-            const gainNode = window.voice.audioCtx.createGain();
-            gainNode.gain.value = (document.getElementById('micGainSlider') ? Number(document.getElementById('micGainSlider').value) : 100) / 100;
-            const dest = window.voice.audioCtx.createMediaStreamDestination();
-
-            src.connect(analyser);
-            analyser.connect(gainNode);
-            gainNode.connect(dest);
-
-            window.voice.analyser = analyser;
-            window.voice.gainNode = gainNode;
-            window.voice.localStream = dest.stream; // processed stream sent to peers
-
-            document.getElementById('toggleMicBtn').textContent = '🔇 Unmute';
-
-            // setup mic meter animation
+            // 简化：直接获取原始麦克风流，不使用 AudioContext 处理增益
+            window.voice.localStream = await navigator.mediaDevices.getUserMedia({ 
+                audio: {
+                    echoCancellation: true,
+                    noiseSuppression: true,
+                    autoGainControl: true
+                }, 
+                video: false 
+            });
+            
+            // 简化：直接显示音量条
             const micLevelEl = document.getElementById('micLevel');
+            const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            const analyser = audioContext.createAnalyser();
+            const microphone = audioContext.createMediaStreamSource(window.voice.localStream);
+            microphone.connect(analyser);
+            analyser.fftSize = 256;
+            
             function updateMeter() {
-                if (!window.voice.analyser) return requestAnimationFrame(updateMeter);
-                const arr = new Uint8Array(window.voice.analyser.frequencyBinCount);
-                window.voice.analyser.getByteFrequencyData(arr);
-                let sum = 0;
-                for (let i = 0; i < arr.length; i++) sum += arr[i];
-                const avg = sum / arr.length;
-                const pct = Math.min(100, Math.max(0, avg / 2));
-                if (micLevelEl) micLevelEl.style.width = pct + '%';
+                if (!analyser) return;
+                const array = new Uint8Array(analyser.frequencyBinCount);
+                analyser.getByteFrequencyData(array);
+                const average = array.reduce((a, b) => a + b) / array.length;
+                const percentage = Math.min(100, average * 2);
+                if (micLevelEl) micLevelEl.style.width = percentage + '%';
                 requestAnimationFrame(updateMeter);
             }
-            requestAnimationFrame(updateMeter);
-
-            // wire gain slider
-            const gainSlider = document.getElementById('micGainSlider');
-            const gainLabel = document.getElementById('micGainValue');
-            if (gainSlider) {
-                gainSlider.addEventListener('input', () => {
-                    const v = Number(gainSlider.value) / 100;
-                    if (window.voice.gainNode) window.voice.gainNode.gain.value = v;
-                    if (gainLabel) gainLabel.textContent = Math.round(v * 100) + '%';
-                });
-            }
-
+            updateMeter();
+            
+            document.getElementById('toggleMicBtn').disabled = false;
+            document.getElementById('toggleMicBtn').textContent = '🔇 静音';
+            
         } catch (err) {
-            showStatus('voiceStatus', 'Microphone access denied', 'error');
+            console.error('麦克风访问失败:', err);
+            showStatus('voiceStatus', '麦克风访问被拒绝: ' + err.message, 'error');
             throw err;
         }
     }
@@ -1338,46 +1408,82 @@ function displayMessage(message, type, timestamp) {
     }
 
     function addRemoteStream(peerId, stream) {
+        console.log('收到来自', peerId, '的音频流:', stream);
+        
         let container = document.getElementById('participantsList');
         let row = document.getElementById('participant-' + peerId);
-        if (row) return;
+        if (row) {
+            // 如果已经存在，更新音频源
+            const audio = row.querySelector('audio');
+            if (audio) {
+                audio.srcObject = stream;
+            }
+            return;
+        }
+        
         row = document.createElement('div');
         row.id = 'participant-' + peerId;
         row.style.display = 'flex';
         row.style.alignItems = 'center';
         row.style.gap = '10px';
-        const name = (window.voice && window.voice.names && window.voice.names[peerId]) ? window.voice.names[peerId] : peerId;
-
+        row.style.marginBottom = '10px';
+        row.style.padding = '10px';
+        row.style.backgroundColor = '#f5f5f5';
+        row.style.borderRadius = '8px';
+        
+        const name = (window.voice && window.voice.names && window.voice.names[peerId]) ? 
+            window.voice.names[peerId] : peerId;
+        
         const label = document.createElement('div');
-        label.textContent = name + ' (' + peerId + ')';
+        label.textContent = name;
         label.style.fontWeight = '600';
-
+        label.style.minWidth = '100px';
+        
+        // 创建音频元素
         const audio = document.createElement('audio');
         audio.autoplay = true;
-        audio.controls = false;
+        audio.controls = true;  // 添加控制条便于调试
+        audio.style.flex = '1';
         audio.srcObject = stream;
-
+        
+        // 添加音量控制
         const volWrapper = document.createElement('div');
         volWrapper.style.display = 'flex';
         volWrapper.style.alignItems = 'center';
         volWrapper.style.gap = '8px';
-
+        volWrapper.style.minWidth = '120px';
+        
+        const volLabel = document.createElement('span');
+        volLabel.textContent = '音量:';
+        volLabel.style.fontSize = '12px';
+        
         const volSlider = document.createElement('input');
         volSlider.type = 'range';
         volSlider.min = 0;
         volSlider.max = 200;
         volSlider.value = 100;
+        volSlider.style.width = '80px';
         volSlider.addEventListener('input', () => {
             const v = Number(volSlider.value) / 100;
             audio.volume = Math.min(2, Math.max(0, v));
         });
-
+        
+        volWrapper.appendChild(volLabel);
         volWrapper.appendChild(volSlider);
-
+        
         row.appendChild(label);
         row.appendChild(audio);
         row.appendChild(volWrapper);
         container.appendChild(row);
+        
+        // 监听音频事件
+        audio.onloadedmetadata = () => {
+            console.log('音频元数据加载完成:', peerId);
+            audio.play().catch(e => console.error('播放失败:', e));
+        };
+        
+        audio.onplay = () => console.log('音频开始播放:', peerId);
+        audio.onerror = (e) => console.error('音频错误:', peerId, e);
     }
 
     function removePeer(peerId) {
@@ -1388,16 +1494,16 @@ function displayMessage(message, type, timestamp) {
 
     function toggleMic() {
         if (!window.voice.localStream) {
-            ensureLocalAudio().then(() => {
-                document.getElementById('toggleMicBtn').textContent = '🔇 Unmute';
-                showStatus('voiceStatus', 'Microphone enabled', 'success');
-            }).catch(()=>{});
+            ensureLocalAudio();
             return;
         }
-        const track = window.voice.localStream.getAudioTracks()[0];
-        if (!track) return;
-        track.enabled = !track.enabled;
-        document.getElementById('toggleMicBtn').textContent = track.enabled ? '🔇 Unmute' : '🎤 Mute';
+        const audioTracks = window.voice.localStream.getAudioTracks();
+        if (audioTracks.length > 0) {
+            const isEnabled = audioTracks[0].enabled;
+            audioTracks[0].enabled = !isEnabled;
+            document.getElementById('toggleMicBtn').textContent = 
+                audioTracks[0].enabled ? '🔇 静音' : '🎤 取消静音';
+        }
     }
 
     function toggleCamera() {
@@ -1427,9 +1533,217 @@ function displayMessage(message, type, timestamp) {
         document.getElementById('toggleMicBtn').disabled = true;
         document.getElementById('leaveRoomBtn').disabled = true;
         document.getElementById('participantsList').innerHTML = '';
+        document.getElementById('networkLatency').textContent = '📡 Latency: -- ms';
+        document.getElementById('networkStatus').classList.remove('good', 'ok', 'poor');
         showStatus('voiceStatus', 'Left the room', 'info');
     }
+
+    // ===================== Settings Panel =====================
+    function initSettings() {
+        const savedPixelFlowState = localStorage.getItem('pixelFlowEnabled');
+        const enabled = savedPixelFlowState === null ? true : savedPixelFlowState === 'true';
+        window.pixelFlowEnabled = enabled;
+        document.getElementById('animationToggle').checked = enabled;
+    }
+
+    function toggleWaveAnimation(enabled) {
+        window.pixelFlowEnabled = enabled;
+        localStorage.setItem('pixelFlowEnabled', enabled);
+    }
+
+    function closeSettings() {
+        const modal = document.getElementById('settingsModal');
+        modal.style.display = 'none';
+    }
+
+    function openSettings() {
+        const modal = document.getElementById('settingsModal');
+        modal.style.display = 'flex';
+    }
+
+    // Event listeners
+    document.addEventListener('DOMContentLoaded', () => {
+        const settingsBtn = document.getElementById('settingsBtn');
+        const settingsModal = document.getElementById('settingsModal');
+        const animationToggle = document.getElementById('animationToggle');
+        if (settingsBtn) settingsBtn.addEventListener('click', openSettings);
+        if (settingsModal) settingsModal.addEventListener('click', (e) => { if (e.target === settingsModal) closeSettings(); });
+        if (animationToggle) animationToggle.addEventListener('change', (e) => { toggleWaveAnimation(e.target.checked); });
+        initSettings();
+    });
+
+    // Fallback for if DOMContentLoaded already fired
+    if (document.readyState !== 'loading') {
+        setTimeout(() => {
+            const settingsBtn = document.getElementById('settingsBtn');
+            const settingsModal = document.getElementById('settingsModal');
+            const animationToggle = document.getElementById('animationToggle');
+            if (settingsBtn) settingsBtn.addEventListener('click', openSettings);
+            if (settingsModal) settingsModal.addEventListener('click', (e) => { if (e.target === settingsModal) closeSettings(); });
+            if (animationToggle) animationToggle.addEventListener('change', (e) => { toggleWaveAnimation(e.target.checked); });
+            initSettings();
+        }, 0);
+    }
+
+
+    // 科幻蓝像素灯带流动背景（小像素+圆角+完整填充+可开关）
+    function createPixelFlowBackground() {
+        const waveBg = document.getElementById('waveBg');
+        if (!waveBg) return;
+        // Remove any existing canvas
+        const existingCanvas = waveBg.querySelector('canvas');
+        if (existingCanvas) existingCanvas.remove();
+        const canvas = document.createElement('canvas');
+        canvas.style.display = 'block';
+        waveBg.appendChild(canvas);
+
+        function resizeCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+        resizeCanvas();
+        window.addEventListener('resize', resizeCanvas);
+
+        const ctx = canvas.getContext('2d');
+        // 配置像素灯参数
+        const pixelGap = 3;
+        // 先假设目标像素格数量
+        function getBestSize() {
+            // 以 2/3 原30列为基准
+            const targetCols = 30;
+            const sizeW = (canvas.width - (targetCols+1)*pixelGap) / targetCols * 0.67;
+            const sizeH = (canvas.height - (Math.floor(canvas.height/(sizeW+pixelGap))+1)*pixelGap) / Math.floor(canvas.height/(sizeW+pixelGap));
+            return Math.floor(Math.min(sizeW, sizeH));
+        }
+        function getGrid() {
+            const size = getBestSize();
+            const cols = Math.floor((canvas.width + pixelGap) / (size + pixelGap));
+            const rows = Math.floor((canvas.height + pixelGap) / (size + pixelGap));
+            return {size, cols, rows};
+        }
+        let flows = [];
+        let grid = getGrid();
+        function initFlows() {
+            grid = getGrid();
+            flows = [];
+            for (let y = 0; y < grid.rows; y++) {
+                flows.push({
+                    pos: -Math.floor(Math.random()*grid.cols),
+                    length: 4 + Math.floor(Math.random()*3),
+                    timer: Math.random()*2000,
+                    speed: 60 + Math.random()*40,
+                    active: false
+                });
+            }
+        }
+        initFlows();
+        window.addEventListener('resize', initFlows);
+
+        // 科幻蓝色
+        function pixelColor(alpha) {
+            return `rgba(0,180,255,${alpha})`;
+        }
+        // 圆角像素格
+        function drawPixel(x, y, size, r, color) {
+            ctx.beginPath();
+            ctx.moveTo(x+r, y);
+            ctx.lineTo(x+size-r, y);
+            ctx.quadraticCurveTo(x+size, y, x+size, y+r);
+            ctx.lineTo(x+size, y+size-r);
+            ctx.quadraticCurveTo(x+size, y+size, x+size-r, y+size);
+            ctx.lineTo(x+r, y+size);
+            ctx.quadraticCurveTo(x, y+size, x, y+size-r);
+            ctx.lineTo(x, y+r);
+            ctx.quadraticCurveTo(x, y, x+r, y);
+            ctx.closePath();
+            ctx.fillStyle = color;
+            ctx.fill();
+        }
+        // 动画主循环
+        let lastTime = Date.now();
+        function animate() {
+            ctx.clearRect(0,0,canvas.width,canvas.height);
+            const {size, cols, rows} = grid;
+            const r = Math.max(2, size*0.18); // 圆角半径
+            // 检查屏幕变化
+            const newGrid = getGrid();
+            if (newGrid.cols !== cols || newGrid.rows !== rows || newGrid.size !== size) {
+                initFlows();
+            }
+            // 绘制所有像素
+            for (let y = 0; y < grid.rows; y++) {
+                const flow = flows[y];
+                // 处理发射计时
+                if (!window.pixelFlowEnabled) {
+                    flow.active = false;
+                } else if (!flow.active) {
+                    flow.timer -= (Date.now()-lastTime);
+                    if (flow.timer <= 0) {
+                        flow.active = true;
+                        flow.pos = 0;
+                        flow.length = 4 + Math.floor(Math.random()*3);
+                        flow.speed = 60 + Math.random()*40;
+                    }
+                }
+                // 处理流动
+                if (flow.active) {
+                    if (!flow.lastMove) flow.lastMove = Date.now();
+                    if (Date.now() - flow.lastMove > flow.speed) {
+                        flow.pos++;
+                        flow.lastMove = Date.now();
+                    }
+                    if (flow.pos - flow.length > cols) {
+                        flow.active = false;
+                        flow.timer = 1000 + Math.random()*2000;
+                        flow.lastMove = null;
+                    }
+                }
+                // 绘制本行像素
+                for (let x = 0; x < grid.cols; x++) {
+                    let alpha = 0.12;
+                    if (window.pixelFlowEnabled && flow.active) {
+                        const head = flow.pos;
+                        const tail = head - flow.length;
+                        if (x === head) alpha = 1.0;
+                        else if (x < head && x > tail) {
+                            alpha = 0.5 + 0.5*(x-tail)/flow.length;
+                        } else if (x === tail) {
+                            alpha = 0.3;
+                        }
+                    }
+                    // 让像素格完整填充屏幕
+                    let px = x*(size+pixelGap);
+                    let py = y*(size+pixelGap);
+                    drawPixel(px, py, size, r, pixelColor(alpha));
+                }
+            }
+            lastTime = Date.now();
+            requestAnimationFrame(animate);
+        }
+        animate();
+    }
+    // 控制像素流动开关
+    window.pixelFlowEnabled = true;
+    document.addEventListener('DOMContentLoaded', createPixelFlowBackground);
+    if (document.readyState !== 'loading') setTimeout(createPixelFlowBackground, 100);
 </script>
+
+    <!-- Settings Modal -->
+    <div id="settingsModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:1000; align-items:center; justify-content:center;">
+        <div style="background:white; padding:30px; border-radius:12px; box-shadow:0 10px 40px rgba(0,0,0,0.3); max-width:350px; width:100%; margin:20px;">
+            <h2 style="margin-bottom:24px; color:#333; font-size:20px;">Settings</h2>
+            <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:16px; padding-bottom:16px; border-bottom:1px solid #f0f0f0;">
+                <label style="color:#333; font-weight:500; margin:0; font-size:16px;">
+                    🟦 Pixel Flow 动画
+                </label>
+                <label class="toggle-switch">
+                    <input type="checkbox" id="animationToggle">
+                    <span class="toggle-slider"></span>
+                </label>
+            </div>
+            <p style="color:#999; font-size:13px; margin:0;">关闭后所有像素格子都不发光，默认开启。可减少GPU占用。</p>
+        </div>
+    </div>
 </body>
 </html>
 </parameter>
