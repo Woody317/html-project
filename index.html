@@ -1951,10 +1951,32 @@ function displayMessage(message, type, timestamp) {
 
     // Event listeners
     document.addEventListener('DOMContentLoaded', () => {
+        // Tab 切换函数
+        window.switchTab = function(tabName) {
+            document.querySelectorAll('.tab').forEach(btn => btn.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
+            
+            const tabMap = {
+                'file-transfer': ['file-transfer', 0],
+                'video-call': ['video-call', 1],
+                'chat': ['chat', 2],
+                'voice-room': ['voice-room', 3],
+                'network-info': ['network-info', 4]
+            };
+            
+            if (tabMap[tabName]) {
+                const tabs = document.querySelectorAll('.tab');
+                tabs[tabMap[tabName][1]].classList.add('active');
+                document.getElementById(tabMap[tabName][0]).classList.add('active');
+            }
+        };
+        
+        // 设置按钮事件
         const settingsBtn = document.getElementById('settingsBtn');
         const settingsModal = document.getElementById('settingsModal');
         const animationToggle = document.getElementById('animationToggle');
         const darkModeToggle = document.getElementById('darkModeToggle');
+        
         if (settingsBtn) settingsBtn.addEventListener('click', openSettings);
         if (settingsModal) settingsModal.addEventListener('click', (e) => { if (e.target === settingsModal) closeSettings(); });
         if (animationToggle) animationToggle.addEventListener('change', (e) => { toggleWaveAnimation(e.target.checked); });
@@ -1963,41 +1985,14 @@ function displayMessage(message, type, timestamp) {
             document.body.classList.toggle('dark-mode', enabled);
             localStorage.setItem('darkMode', enabled);
         });
+        
         initSettings();
         
-        // Initialize first tab underline position
-        const firstTab = document.querySelector('.tab.active');
-        if (firstTab) {
-            const tabsContainer = document.querySelector('.tabs');
-            tabsContainer.style.setProperty('--underline-left', firstTab.offsetLeft + 'px');
-            tabsContainer.style.setProperty('--underline-width', firstTab.offsetWidth + 'px');
+        // 初始化背景动画
+        if (typeof createPixelFlowBackground === 'function') {
+            createPixelFlowBackground();
         }
     });
-    if (document.readyState !== 'loading') {
-        setTimeout(() => {
-            const settingsBtn = document.getElementById('settingsBtn');
-            const settingsModal = document.getElementById('settingsModal');
-            const animationToggle = document.getElementById('animationToggle');
-            const darkModeToggle = document.getElementById('darkModeToggle');
-            if (settingsBtn) settingsBtn.addEventListener('click', openSettings);
-            if (settingsModal) settingsModal.addEventListener('click', (e) => { if (e.target === settingsModal) closeSettings(); });
-            if (animationToggle) animationToggle.addEventListener('change', (e) => { toggleWaveAnimation(e.target.checked); });
-            if (darkModeToggle) darkModeToggle.addEventListener('change', (e) => {
-                const enabled = e.target.checked;
-                document.body.classList.toggle('dark-mode', enabled);
-                localStorage.setItem('darkMode', enabled);
-            });
-            initSettings();
-            
-            // Initialize first tab underline position
-            const firstTab = document.querySelector('.tab.active');
-            if (firstTab) {
-                const tabsContainer = document.querySelector('.tabs');
-                tabsContainer.style.setProperty('--underline-left', firstTab.offsetLeft + 'px');
-                tabsContainer.style.setProperty('--underline-width', firstTab.offsetWidth + 'px');
-            }
-        }, 0);
-    }
 
 
     // Sci-fi blue pixel light strip flowing background (small pixels + rounded corners + full fill + switchable)
